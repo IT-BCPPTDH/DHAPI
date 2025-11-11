@@ -11,6 +11,8 @@ class EmployeeController extends Controller
     public function DataPersonal(Request $request)
     {
         $data = DB::connection('CrystalDH')->table('V_EmpAll')->where('EmployeeId', $request->input('jdeno'))->first();
-        return response()->json($data, 200);
+        return response()->json([
+            'data'  => $data
+        ], 200);
     }
 }
