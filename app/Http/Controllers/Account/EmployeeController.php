@@ -15,8 +15,7 @@ class EmployeeController extends Controller
 
             if (!$data) {
                 return response()->json([
-                    'message' => 'Data Karyawan tidak ditemukan',
-                    'data' => null
+                    'message' => 'Data Karyawan tidak ditemukan'
                 ], 200);
             }
 
