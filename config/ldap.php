@@ -29,9 +29,9 @@ return [
     'connections' => [
 
         'default' => [
-            'hosts' => ['10.27.240.10'],
-            'username' => 'itdewa@jkt.ptdh.co.id',
-            'password' => 'F0rg0tt3np4st!',
+            'hosts' => ['ipaddress'],
+            'username' => 'username@jkt.ptdh.co.id',
+            'password' => 'passwordsaya',
             'port' => 389,
             'base_dn' => 'DC=jkt,DC=ptdh,DC=co,DC=id',
             'timeout' => env('LDAP_TIMEOUT', 5),
