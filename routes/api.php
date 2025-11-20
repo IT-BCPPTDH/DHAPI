@@ -14,6 +14,7 @@ use App\Http\Controllers\PTDHCardController;
 use App\Http\Controllers\Account\EmployeeController;
 use App\Http\Controllers\Leave\LeaveController;
 use App\Http\Controllers\Absence\AbsenceController;
+use App\Http\Controllers\ActiveDirectoryController;
 
 use App\Http\Controllers\PRETESTController;
 
@@ -822,4 +823,9 @@ Route::get('/dataPersonal', [EmployeeController::class, 'DataPersonal']);
 Route::get('/historyLeaveEmployee', [LeaveController::class, 'HistoryLeaveEmployee']);
 Route::get('/balanceLeaveEmployee', [LeaveController::class, 'BalanceLeaveEmployee']);
 Route::get('/historyAbsenceEmployee', [AbsenceController::class, 'HistoryAbsenceEmployee']);
+
+
+Route::get('/ad/users', [ActiveDirectoryController::class, 'getUsers']);
+Route::get('/ad/user/{accountName}', [ActiveDirectoryController::class, 'getUser']);
+Route::post('/ad/login', [ActiveDirectoryController::class, 'login']);
 //end receiving//
