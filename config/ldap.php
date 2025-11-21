@@ -29,21 +29,20 @@ return [
     'connections' => [
 
         'default' => [
-            'hosts' => ['ipaddress'],
-            'username' => 'username@jkt.ptdh.co.id',
-            'password' => 'passwordsaya',
-            'port' => 389,
-            'base_dn' => 'DC=jkt,DC=ptdh,DC=co,DC=id',
+            'hosts' => [env('LDAP_HOST')],
+            'username' => env('LDAP_USERNAME'),
+            'password' => env('LDAP_PASSWORD'),
+            'port' => env('LDAP_PORT', 389),
+            'base_dn' => env('LDAP_BASE_DN'),
             'timeout' => env('LDAP_TIMEOUT', 5),
             'use_ssl' => env('LDAP_SSL', false),
             'use_tls' => env('LDAP_TLS', false),
             'use_sasl' => env('LDAP_SASL', false),
-            'sasl_options' => [
-                // 'mech' => 'GSSAPI',
-            ],
+            'sasl_options' => [],
         ],
 
     ],
+
 
     /*
     |--------------------------------------------------------------------------

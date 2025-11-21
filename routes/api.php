@@ -824,8 +824,5 @@ Route::get('/historyLeaveEmployee', [LeaveController::class, 'HistoryLeaveEmploy
 Route::get('/balanceLeaveEmployee', [LeaveController::class, 'BalanceLeaveEmployee']);
 Route::get('/historyAbsenceEmployee', [AbsenceController::class, 'HistoryAbsenceEmployee']);
 
-
-Route::get('/ad/users', [ActiveDirectoryController::class, 'getUsers']);
-Route::get('/ad/user/{accountName}', [ActiveDirectoryController::class, 'getUser']);
 Route::post('/ad/login', [ActiveDirectoryController::class, 'login']);
 //end receiving//
