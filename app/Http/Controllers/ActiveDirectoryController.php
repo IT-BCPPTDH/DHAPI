@@ -2,19 +2,17 @@
 
 namespace App\Http\Controllers;
 
-use App\Ldap\User;
+use Adldap\Laravel\Facades\Adldap;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
-use LdapRecord\Container;
 
 class ActiveDirectoryController extends Controller
 {
     public function login(Request $request): JsonResponse
     {
-        // 1) Validate input
         $data = $request->validate([
             'username' => 'required|string|max:128',
             'password' => 'required|string|min:1|max:256',
@@ -36,10 +34,7 @@ class ActiveDirectoryController extends Controller
         }
 
         if (!extension_loaded('ldap')) {
-            Log::error('LDAP extension missing when attempting AD login', [
-                'username' => $username,
-            ]);
-
+            Log::error('LDAP extension missing');
             return response()->json([
                 'success' => false,
                 'message' => 'Server misconfiguration (LDAP tidak aktif).',
@@ -57,13 +52,10 @@ class ActiveDirectoryController extends Controller
         $upn    = $username . '@' . $domain;
 
         try {
-            $connection = Container::getConnection('default');
+            $provider = Adldap::getProvider('default');
 
-            $connection->connect();
+            if (!$provider->auth()->attempt($username, $password, true)) {
 
-            $ok = $connection->auth()->attempt($upn, $password);
-
-            if (!$ok) {
                 Cache::put($throttleKey, $attempts + 1, now()->addMinutes($lockMinutes));
 
                 return response()->json([
@@ -74,57 +66,53 @@ class ActiveDirectoryController extends Controller
 
             Cache::forget($throttleKey);
 
-            /** @var \App\Ldap\User|null $user */
-            $user = User::whereEquals('samaccountname', $username)->first();
+            $user = $provider->search()
+                ->whereEquals('samaccountname', $username)
+                ->first();
 
             if (!$user) {
-                Log::warning('User authenticated but not found in LDAP query', [
-                    'username' => $username,
-                ]);
-
                 return response()->json([
                     'success' => false,
                     'message' => 'User ditemukan di AD, tapi data tidak tersedia.',
                 ], 404);
             }
 
-            $uac   = (int)($user->useraccountcontrol[0] ?? 0);
+            $uac = (int) $user->getFirstAttribute('useraccountcontrol');
             $disabled = ($uac & 0x0002) === 0x0002;
 
             if ($disabled) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Account AD Anda sedang disabled. Hubungi administrator.',
+                    'message' => 'Account AD Anda disabled. Hubungi administrator.',
                 ], 403);
             }
 
-            $accountName = $user->samaccountname[0] ?? null;
-
             $attributes = [
-                'displayName'    => $user->displayname[0] ?? null,
-                'mail'           => $user->mail[0] ?? null,
-                'memberOf'       => $user->memberof ?? [],
-                'organization'   => $user->o[0] ?? null,
-                'company'        => $user->company[0] ?? null,
-                'departmentName' => $user->department[0] ?? null,
-                'title'          => $user->title[0] ?? null,
+                'displayName'    => $user->getFirstAttribute('displayname'),
+                'mail'           => $user->getFirstAttribute('mail'),
+                'memberOf'       => $user->memberof ?: [],
+                'organization'   => $user->getFirstAttribute('o'),
+                'company'        => $user->getFirstAttribute('company'),
+                'departmentName' => $user->getFirstAttribute('department'),
+                'title'          => $user->getFirstAttribute('title'),
             ];
 
             return response()->json([
                 'success'     => true,
                 'message'     => 'Login berhasil',
-                'accountName' => $accountName,
+                'accountName' => $username,
                 'attributes'  => $attributes,
             ]);
         } catch (\Throwable $e) {
-            Log::error('LDAP login error', [
+
+            Log::error('LDAP Adldap login error', [
                 'username' => $username,
                 'error'    => $e->getMessage(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'LDAP connection error. Silakan coba lagi atau hubungi admin.',
+                'message' => $e->getMessage(),  // tampilkan error asli
             ], 500);
         }
     }
