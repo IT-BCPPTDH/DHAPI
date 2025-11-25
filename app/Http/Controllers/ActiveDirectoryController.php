@@ -8,6 +8,10 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
+use App\Models\User;
+use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
+
 
 class ActiveDirectoryController extends Controller
 {
@@ -88,6 +92,7 @@ class ActiveDirectoryController extends Controller
             }
 
             $attributes = [
+                'jdeno'          => $user->getFirstAttribute('employeeid') ?? null,
                 'displayName'    => $user->getFirstAttribute('displayname'),
                 'mail'           => $user->getFirstAttribute('mail'),
                 'memberOf'       => $user->memberof ?: [],
@@ -97,11 +102,37 @@ class ActiveDirectoryController extends Controller
                 'title'          => $user->getFirstAttribute('title'),
             ];
 
+            $employeeid = $user->getFirstAttribute('employeeid') ?? null;
+
+            if ($employeeid) {
+                $jdedata = DB::connection('CrystalDHDemo')
+                    ->table('V_EmpAll')
+                    ->where('EmployeeId', $employeeid)
+                    ->first();
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'JDE kosong. Hubungi administrator.',
+                ], 403);
+            }
+
+            $tempUser = new User([
+                'id'          => 0,
+                'accountName' => $username,
+                'name'        => $user->getFirstAttribute('displayname'),
+                'email'       => $user->getFirstAttribute('mail'),
+                'employeeid'  => $employeeid,
+            ]);
+            $token = JWTAuth::fromUser($tempUser);
+
             return response()->json([
                 'success'     => true,
                 'message'     => 'Login berhasil',
+                'token'       => $token,
+                'token_type'  => 'bearer',
                 'accountName' => $username,
                 'attributes'  => $attributes,
+                'hrisData'     => $jdedata,
             ]);
         } catch (\Throwable $e) {
 
@@ -112,7 +143,7 @@ class ActiveDirectoryController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage(),  // tampilkan error asli
+                'message' => 'Error, Harap Hubungin admin',
             ], 500);
         }
     }

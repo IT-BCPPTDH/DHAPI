@@ -188,6 +188,18 @@ return [
             'prefix_indexes' => true,
         ],
 
+        'CrystalDHDemo' => [
+            'driver' => 'sqlsrv',
+            'host' => '10.27.240.203',
+            'port' => '1433',
+            'database' => 'Crystal_DH_Demo',
+            'username' => 'it',
+            'password' => '123abc',
+            'charset' => 'utf8',
+            'prefix' => '',
+            'prefix_indexes' => true,
+        ],
+
     ],
 
     /*
