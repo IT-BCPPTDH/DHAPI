@@ -25,15 +25,15 @@ class ActiveDirectoryController extends Controller
         $username = trim($data['username']);
         $password = $data['password'];
 
-        $throttleKey  = 'ad_login_attempts:' . Str::lower($username) . ':' . $request->ip();
-        $maxAttempts  = 5;
-        $lockMinutes  = 15;
+        $throttleKey = 'ad_login_attempts:' . Str::lower($username) . ':' . $request->ip();
+        $maxAttempts = 5;
+        $lockMinutes = 5;
 
         $attempts = Cache::get($throttleKey, 0);
         if ($attempts >= $maxAttempts) {
             return response()->json([
                 'success' => false,
-                'message' => 'Terlalu banyak percobaan login. Coba lagi dalam beberapa menit.',
+                'message' => "Terlalu banyak percobaan login. Coba lagi dalam $lockMinutes menit.",
             ], 429);
         }
 
@@ -41,7 +41,7 @@ class ActiveDirectoryController extends Controller
             Log::error('LDAP extension missing');
             return response()->json([
                 'success' => false,
-                'message' => 'Server misconfiguration (LDAP tidak aktif).',
+                'message' => 'Server error: LDAP tidak aktif.',
             ], 500);
         }
 
@@ -64,7 +64,7 @@ class ActiveDirectoryController extends Controller
 
                 return response()->json([
                     'success' => false,
-                    'message' => 'Invalid credentials',
+                    'message' => 'Username atau password salah',
                 ], 401);
             }
 
@@ -77,52 +77,52 @@ class ActiveDirectoryController extends Controller
             if (!$user) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'User ditemukan di AD, tapi data tidak tersedia.',
+                    'message' => 'User ditemukan di AD, namun data tidak ada.',
                 ], 404);
             }
 
             $uac = (int) $user->getFirstAttribute('useraccountcontrol');
-            $disabled = ($uac & 0x0002) === 0x0002;
+            $isDisabled = ($uac & 0x0002) === 0x0002;
 
-            if ($disabled) {
+            if ($isDisabled) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Account AD Anda disabled. Hubungi administrator.',
+                    'message' => 'Akun AD Anda dinonaktifkan.',
                 ], 403);
             }
 
             $attributes = [
-                'jdeno'          => $user->getFirstAttribute('employeeid') ?? null,
+                'jdeno'          => $user->getFirstAttribute('employeeid'),
                 'displayName'    => $user->getFirstAttribute('displayname'),
                 'mail'           => $user->getFirstAttribute('mail'),
                 'memberOf'       => $user->memberof ?: [],
-                'organization'   => $user->getFirstAttribute('o'),
                 'company'        => $user->getFirstAttribute('company'),
                 'departmentName' => $user->getFirstAttribute('department'),
                 'title'          => $user->getFirstAttribute('title'),
             ];
 
-            $employeeid = $user->getFirstAttribute('employeeid') ?? null;
+            $empId = $user->getFirstAttribute('employeeid');
 
-            if ($employeeid) {
-                $jdedata = DB::connection('CrystalDHDemo')
-                    ->table('V_EmpAll')
-                    ->where('EmployeeId', $employeeid)
-                    ->first();
-            } else {
+            if (!$empId) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'JDE kosong. Hubungi administrator.',
+                    'message' => 'EmployeeId kosong di AD.',
                 ], 403);
             }
+
+            $jdedata = DB::connection('CrystalDHDemo')
+                ->table('V_EmpAll')
+                ->where('EmployeeId', $empId)
+                ->first();
 
             $tempUser = new User([
                 'id'          => 0,
                 'accountName' => $username,
                 'name'        => $user->getFirstAttribute('displayname'),
                 'email'       => $user->getFirstAttribute('mail'),
-                'employeeid'  => $employeeid,
+                'employeeid'  => $empId,
             ]);
+
             $token = JWTAuth::fromUser($tempUser);
 
             return response()->json([
@@ -132,18 +132,18 @@ class ActiveDirectoryController extends Controller
                 'token_type'  => 'bearer',
                 'accountName' => $username,
                 'attributes'  => $attributes,
-                'hrisData'     => $jdedata,
+                'hrisData'    => $jdedata,
             ]);
         } catch (\Throwable $e) {
 
-            Log::error('LDAP Adldap login error', [
-                'username' => $username,
+            Log::error('LDAP Login Error', [
+                'username' => $username,    
                 'error'    => $e->getMessage(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Error, Harap Hubungin admin',
+                'message' => 'Terjadi kesalahan server. Hubungi administrator.',
             ], 500);
         }
     }
