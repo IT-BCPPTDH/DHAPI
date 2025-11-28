@@ -178,7 +178,7 @@ return [
         ],
         'CrystalDH' => [
             'driver' => 'sqlsrv',
-            'host' => '10.27.240.203',
+            'host' => '10.105.4.203',
             'port' => '1433',
             'database' => 'Crystal_DH',
             'username' => 'it',
@@ -190,7 +190,7 @@ return [
 
         'CrystalDHDemo' => [
             'driver' => 'sqlsrv',
-            'host' => '10.27.240.203',
+            'host' => '10.105.4.203',
             'port' => '1433',
             'database' => 'Crystal_DH_Demo',
             'username' => 'it',
